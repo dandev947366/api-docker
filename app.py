@@ -3,7 +3,6 @@ import os
 from flask import Flask
 from flask_smorest import Api
 
-import models
 from db import db
 from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
@@ -22,11 +21,23 @@ def create_app(db_url=None):
     app.config["OPENAPI_SWAGGER_UI_URL"] = (
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
     )
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv(
         "DATABASE_URL", "sqlite:///data.db"
     )
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    db.init_app(app)
+
+    @app.before_first_request
+    def create_tables():
+        db.create_all()
+
     api = Api(app)
     api.register_blueprint(ItemBlueprint)
     api.register_blueprint(StoreBlueprint)
 
     return app
+
+
+if __name__ == "__main__":
+    app = create_app()
+    app.run(debug=True)
